@@ -1,6 +1,6 @@
 import sys
 from PySide2.QtWidgets import QApplication, QWidget, QTreeWidget, QHBoxLayout, QVBoxLayout, QTableWidget, QTreeWidgetItem, QTableWidgetItem
-from categories import Categories #Содержит словарь для заполнения дерева
+from categories import Categories #Данные для заполнения
 from PySide2 import QtCore
 from PySide2.QtCore import QObject, Signal
 
