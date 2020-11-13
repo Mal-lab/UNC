@@ -152,7 +152,7 @@ class Window(QWidget):
         #Создание кнопок
         font_button = QFont('Helvetica [Cronyx]', 12, QFont.Bold)
         export_button = QPushButton('Экспорт в Excel')
-        total_button = QPushButton('Сформировть "Итого"')
+        total_button = QPushButton('Сформировать "Итого"')
         export_button.setFont(font_button)
         total_button.setFont(font_button)
 
