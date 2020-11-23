@@ -1,10 +1,11 @@
 import sys
+import xlwt
 import math
-from PySide2.QtWidgets import QApplication, QWidget, QTreeWidget, QHBoxLayout, QVBoxLayout, QTableWidget, QTreeWidgetItem, QTableWidgetItem, QPushButton, QDialog
+from PySide2.QtWidgets import QApplication, QWidget, QTreeWidget, QHBoxLayout, QVBoxLayout, QTableWidget, QTreeWidgetItem, QTableWidgetItem, QPushButton, QFileDialog, QGridLayout
 
 from categories import Categories #Содержит словарь для заполнения дерева
 from PySide2.QtGui import QColor, QFont
-from PySide2.QtCore import QObject, Signal, QPoint
+from PySide2.QtCore import QObject, Signal, QPoint, QMimeData
 
 
 class Communicate(QObject):
@@ -35,6 +36,7 @@ class DataTable(QTableWidget):
                 self.setItem(i-1, j, QTableWidgetItem(table[item][i][j]))
         self.horizontalHeader().setStyleSheet(stylesheet)
         self.resizeColumnsToContents()
+        self.horizontalHeader().setMaximumHeight(200)
 
 class MainTable(QTableWidget):
     def __init__(self):
@@ -105,8 +107,8 @@ class MainTable(QTableWidget):
         cost = float(items[0].replace(',', '.'))
         count = float(items[3].replace(',', '.'))
         k = float(items[4].replace(',', '.'))
-        current_cost = str(round(cost*count*k,1))
-        future_cost = str(round(float(current_cost)*1.2))
+        current_cost = str(round(cost*count*k,11))
+        future_cost = str(round(float(current_cost)*1.2, 1))
         return [current_cost.replace('.', ','), future_cost.replace('.', ',')]
 
     #Рисует крестик для удаления строки
@@ -116,7 +118,6 @@ class MainTable(QTableWidget):
         self.closebut.setFont(QFont('Helvetica [Cronyx]', 18, QFont.ExtraBold))
         self.closebut.setTextColor(QColor(255, 11, 21))
         self.closebut.setTextAlignment(4)
-
 
 class Window(QWidget):
     def __init__(self):
@@ -150,11 +151,13 @@ class Window(QWidget):
         self.table = MainTable()
 
         #Создание кнопок
-        font_button = QFont('Helvetica [Cronyx]', 12, QFont.Bold)
-        export_button = QPushButton('Экспорт в Excel')
-        total_button = QPushButton('Сформировать "Итого"')
-        export_button.setFont(font_button)
-        total_button.setFont(font_button)
+        font_button = QFont('Helvetica [Cronyx]', 8, QFont.Bold)
+        self.clipboard_button = QPushButton('Буфер')
+        self.export_button = QPushButton('Экспорт в Excel')
+        self.total_button = QPushButton('Итого')
+        self.clipboard_button.setFont(font_button)
+        self.export_button.setFont(font_button)
+        self.total_button.setFont(font_button)
 
 
         #Формирование сигналов
@@ -165,38 +168,79 @@ class Window(QWidget):
         tree.itemClicked.connect(self.onItemClicked)
         self.wid.cellClicked.connect(self.onTableItemClicked)
         self.table.cellClicked.connect(self.recalc)
-        export_button.clicked.connect(self.export_excel)
-        export_button.setToolTip('Coming soon!')
+        self.export_button.clicked.connect(self.export_excel)
+        self.clipboard_button.clicked.connect(self.to_clipboard)
+
 
         #Ининциализация слоев
-        vbox = QVBoxLayout(self)
-        hbox = QHBoxLayout(self)
-        #Слой для кнопок
-        buttons_layer = QHBoxLayout(self)
-        button_hbox = QHBoxLayout(self)
-        button_hbox.addStretch(1)
-        button_hbox.addWidget(export_button)
-        button_hbox.addWidget(total_button)
-        button_vbox = QVBoxLayout(self)
-        button_vbox.addStretch(1)
-        button_vbox.addLayout(button_hbox)
-        buttons_layer.addLayout(button_vbox)
+        grid = QGridLayout()
+        self.setLayout(grid)
+        hbox = QVBoxLayout()
+        self.export_button.setFixedSize(100, 20)
+        self.total_button.setFixedSize(100, 20)
+
         #Заполнение слоев
-        hbox.addWidget(tree)
-        hbox.addWidget(self.wid)
+        hbox.addWidget(self.clipboard_button)
+        hbox.addWidget(self.export_button)
+        hbox.addWidget(self.total_button)
+        grid.addWidget(tree, 1, 0)
+        grid.addWidget(self.wid, 1, 1)
+        grid.addWidget(self.table, 2, 0, 1, 2)
+        grid.addLayout(hbox, 3, 2)
 
-        vbox.addLayout(hbox)
-        vbox.addWidget(self.table)
-        vbox.addLayout(buttons_layer)
 
-
-        treeItems() #Заполнить дерево
+        #Заполнить дерево
+        treeItems()
 
         self.show()
 
+    #Сохранение в буфер обмена
+    def to_clipboard(self):
+        html = '<table><tbody>\n'
+        headers = [self.table.horizontalHeaderItem(i).text() for i in range(self.table.columnCount()-1)]
+        html += '<tr>'
+        for c in range(len(headers)):
+            html += '<th>%s</th>' % headers[c]
+        html += '</tr>\n'
+        for r in range(self.table.rowCount()-1):
+            html += '<tr>'
+            for c in range(self.table.columnCount()-1):
+                try:
+                    v = self.table.item(r, c).text()
+                    html += '<td>%s</td>' % v
+                except AttributeError:
+                    v = ''
+                    html += '<td>%s</td>' % v
+            html += '</tr>'
+        html += '</tbody></table>'
+        mime = QMimeData()
+        mime.setHtml(html)
+        clipboard = QApplication.clipboard()
+        clipboard.setMimeData(mime)
+
     #Экспорт таблицы в Excel
     def export_excel(self):
-        pass
+        filename = QFileDialog.getSaveFileName(self, 'Save File', " "'.xls', '(*.xls)')
+        print(filename)
+        wb = xlwt.Workbook()
+        ws = wb.add_sheet('Result')
+        col = 0
+        for i in range(self.table.columnCount() - 1):
+            ws.write(0, col, self.table.horizontalHeaderItem(col).text())
+            col += 1
+        row = 0
+        col = 0
+        for i in range(self.table.columnCount() - 1):
+            for j in range(self.table.rowCount()):
+                try:
+                    item = self.table.item(row, col).text()
+                    ws.write(row + 1, col, item)
+                    row += 1
+                except AttributeError:
+                    row += 1
+            row = 0
+            col += 1
+        wb.save(filename[0])
 
     #Обработка клика по элементу дерева
     def onItemClicked(self, it, col):
