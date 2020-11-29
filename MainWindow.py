@@ -220,7 +220,7 @@ class Window(QWidget):
 
     #Экспорт таблицы в Excel
     def export_excel(self):
-        filename = QFileDialog.getSaveFileName(self, 'Save File', " "'.xls', '(*.xls)')
+        filename = QFileDialog.getSaveFileName(self, 'Save File', " "'.xlsx', '(*.xlsx)')
         print(filename)
         wb = xlwt.Workbook()
         ws = wb.add_sheet('Result')
