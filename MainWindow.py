@@ -137,7 +137,7 @@ class Window(QWidget):
 
         #Базовое окно
         self.setGeometry(0, 0, 1900, 1000)
-        self.setWindowTitle('УНЦ ПБЭ')
+        self.setWindowTitle('УНЦ ПроектБалтЭнерго')
 
         #Инициализация дерева
         tree = QTreeWidget(self)
